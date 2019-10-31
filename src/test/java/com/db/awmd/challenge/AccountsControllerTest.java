@@ -3,6 +3,7 @@ package com.db.awmd.challenge;
 import com.db.awmd.challenge.domain.Account;
 import com.db.awmd.challenge.service.AccountsService;
 import com.db.awmd.challenge.service.NotificationService;
+import org.assertj.core.internal.cglib.asm.$MethodVisitor;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -60,15 +62,22 @@ public class AccountsControllerTest {
         Account account = accountsService.getAccount("Id-123");
         assertThat(account.getAccountId()).isEqualTo("Id-123");
         assertThat(account.getBalance()).isEqualByComparingTo("1000");
-    }
-    @Test
-    public void createSecondAccount() throws Exception {
+
         this.mockMvc.perform(post("/v1/accounts").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"accountId\":\"Id-321\",\"balance\":0}")).andExpect(status().isCreated());
 
-        Account account = accountsService.getAccount("Id-321");
-        assertThat(account.getAccountId()).isEqualTo("Id-321");
-        assertThat(account.getBalance()).isEqualByComparingTo("0");
+        Account secondAccount = accountsService.getAccount("Id-321");
+        assertThat(secondAccount.getAccountId()).isEqualTo("Id-321");
+        assertThat(secondAccount.getBalance()).isEqualByComparingTo("0");
+
+
+        this.mockMvc.perform(post("/v1/accounts/moneyTransfer").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"accountFrom\":\"Id-123\",\"accountTo\":\"Id-321\",\"amount\":500}")).andExpect(status().isCreated());
+
+        Account account2 = accountsService.getAccount("Id-321");
+        assertThat(account2.getAccountId()).isEqualTo("Id-321");
+        assertThat(account2.getBalance()).isEqualByComparingTo("500");
+
     }
 
     @Test
@@ -122,15 +131,4 @@ public class AccountsControllerTest {
                 .andExpect(
                         content().string("{\"accountId\":\"" + uniqueAccountId + "\",\"balance\":123.45}"));
     }
-
-    @Test
-    public void testTransferMoney() throws Exception {
-        this.mockMvc.perform(post("/v1/accounts/moneyTransfer").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"accountFrom\":\"Id-123\",\"accountTo\":\"Id-321\",\"amount\":500}")).andExpect(status().isBadRequest());
-
-        Account account = accountsService.getAccount("Id-321");
-        assertThat(account.getAccountId()).isEqualTo("Id-321");
-        assertThat(account.getBalance()).isEqualByComparingTo("500");
-
-    }
-}
+ }

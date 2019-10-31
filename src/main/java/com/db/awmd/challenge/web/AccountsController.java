@@ -1,6 +1,7 @@
 package com.db.awmd.challenge.web;
 
 import com.db.awmd.challenge.domain.Account;
+import com.db.awmd.challenge.domain.MoneyTransfer;
 import com.db.awmd.challenge.exception.DuplicateAccountIdException;
 import com.db.awmd.challenge.exception.NegativeBalance;
 import com.db.awmd.challenge.exception.OverdraftException;
@@ -9,6 +10,7 @@ import com.db.awmd.challenge.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ public class AccountsController {
 
     private final AccountsService accountsService;
     private Logger log = LoggerFactory.getLogger("AccountsController");
+
 
     private NotificationService notificationService;
 
@@ -52,26 +55,25 @@ public class AccountsController {
     }
 
     /**
-     * added moneyTransfer method
-     *
-     * @param accountFrom - from which account we have to transfer the amount
-     * @param accountTo   - to which account we have to transfer the amount
-     * @param amount      - amount to be transered
-     * @return - return response entity object
+     * added for money transfer method
+     * @param moneyTransfer - added model for map JSON inputs
+     * @return return response entity obj
      */
     @PostMapping(path = "/moneyTransfer", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Object> moneyTransfer(@RequestBody String accountFrom, @RequestBody String accountTo, @RequestBody Float amount) {
-        log.info("from accountFrom {}", accountFrom);
-        log.info("from accountTo {}", accountTo);
-        log.info("from amount {}", amount);
+    public ResponseEntity<Object> moneyTransfer(@RequestBody MoneyTransfer moneyTransfer) {
+        log.info("from accountFrom {}", moneyTransfer.getAccountFrom());
+        log.info("from accountTo {}", moneyTransfer.getAccountTo());
+        log.info("from amount {}", moneyTransfer.getAmount());
         try {
-            this.accountsService.transferMoney(accountFrom, accountTo, amount);
-            Account fromAccount = this.accountsService.getAccount(accountFrom);
-            Account toAccount = this.accountsService.getAccount(accountTo);
+            this.accountsService.transferMoney(moneyTransfer.getAccountFrom(), moneyTransfer.getAccountTo(), moneyTransfer.getAmount().floatValue());
+            Account fromAccount = this.accountsService.getAccount(moneyTransfer.getAccountFrom());
+            Account toAccount = this.accountsService.getAccount(moneyTransfer.getAccountTo());
             //added notification to transfer amount
-            notificationService.notifyAboutTransfer(fromAccount, "Amount :" + amount + " transferred to " + accountTo);
+            log.info(fromAccount + ", Amount :" + moneyTransfer.getAmount() + " transferred to " + moneyTransfer.getAccountTo());
+            log.info(toAccount + ", Amount :" + moneyTransfer.getAmount() + " get credited from account : " + fromAccount.getAccountId());
+            // notificationService.notifyAboutTransfer(fromAccount, "Amount :" + moneyTransfer.getAmount() + " transferred to " + moneyTransfer.getAccountTo());
             //added notification for credit information
-            notificationService.notifyAboutTransfer(toAccount, "Amount :" + amount + " get credited from account : " + fromAccount.getAccountId());
+            // notificationService.notifyAboutTransfer(toAccount, "Amount :" + moneyTransfer.getAmount() + " get credited from account : " + fromAccount.getAccountId());
         } catch (DuplicateAccountIdException daie) {
             return new ResponseEntity<>(daie.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (NegativeBalance nb) {

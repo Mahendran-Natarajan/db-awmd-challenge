@@ -4,6 +4,8 @@ import com.db.awmd.challenge.domain.Account;
 import com.db.awmd.challenge.exception.DuplicateAccountIdException;
 import com.db.awmd.challenge.exception.NegativeBalance;
 import com.db.awmd.challenge.exception.OverdraftException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -12,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class AccountsRepositoryInMemory implements AccountsRepository {
+
+    private Logger log = LoggerFactory.getLogger("AccountsRepositoryInMemory");
 
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();
 
@@ -35,17 +39,21 @@ public class AccountsRepositoryInMemory implements AccountsRepository {
     }
 
     public void transferMoeny(String fromAccountId, String toAccountId, float amount) {
+        log.info("TransferMoney ()");
         Account fromAccount = accounts.get(fromAccountId);
         Account toAccount = accounts.get(toAccountId);
         //should be positive balance
         if (fromAccount.getBalance().intValue() > 0) {
+            log.info("TransferMoney () fromAccount > 0");
             //can not be overdraft
             if ((fromAccount.getBalance().intValue() - amount) > 0) {
+                log.info("TransferMoney () fromAccount balance >  0");
                 // transfer money
-                BigDecimal transferAmount = new BigDecimal(0);
-                transferAmount.add(toAccount.getBalance());
-                transferAmount.add(new BigDecimal(amount));
+                float calc = amount + toAccount.getBalance().floatValue();
+                BigDecimal transferAmount = new BigDecimal(calc);
                 toAccount.setBalance(transferAmount);
+
+                log.info("TransferMoney ()  toAccount Balance {}", toAccount.getBalance());
             } else {
                 //throw amount not overdraft
                 throw new OverdraftException("Amount is not enough to transfer balance");
